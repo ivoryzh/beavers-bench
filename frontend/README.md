@@ -40,15 +40,40 @@ npm run build    # type-check, then write ../beavers_bench/static (commit the re
   station (the TLH doses the uncapped vial there, after the arm fetches it from its wash station). The
   simulator still moves the vial between them, so the arm lifts and re-seats it in place. The Quantos
   door slides open for every visit (`door` on a location).
-- **Estimated**: the table and the robot's plate, the VICI valve and (on the balance bench only) the
-  solvent tray, the plain balance of the second bench, the webcam, and the Quantos' outer shape (its
-  footprint is kept narrow enough to leave the dosing-head rack clear; its side door, on the robot's
-  side, slides toward the back).
+- **Estimated**: the table and the robot's plate, the plain balance of the second bench, the webcam,
+  and the Quantos' outer shape (its side door, on the robot's side, slides toward the back).
 - **Only `tray_2` is drawn.** The file's `tray_1`, `tray_3`, `tray_4` and `tray_5` are listed in the
   "Locations only" view but not on the bench.
-- **The Quantos is not at the file's `vial_at_quantos`.** It stands at the far end of the capping side;
-  its dosing-head hook is the file's `dosing_head_at_quantos` point and the vial seat is placed under
-  that hook (estimated). The file's `vial_at_quantos` point is still shown in "Locations only".
+- **The Quantos is not at the file's `vial_at_quantos`.** It stands in the table's far corner, its
+  dosing-head hook on the file's `dosing_head_at_quantos` point slid `QUANTOS_SHIFT` (2 cm out, 4 cm
+  back: as far as the arm can still dock the head) so the capping station is clear of its side door. The
+  vial holder is in the middle of the chamber, right under the hook (estimated). The file's `vial_at_quantos`
+  and `dosing_head_at_quantos` points are still shown in "Locations only".
+- **Vials go into the Quantos sideways, the way the lab loads it.** The arm comes down outside the
+  balance (`weigh_balance_buffer_safe`, high, then `weigh_balance_safe` at the approach height, 7 cm clear
+  of the door), slides straight in over the holder, drops 4 cm to seat the vial, lifts, slides straight
+  back out, and only then does the door close. The vial is gripped like a tray vial (rz -90).
+- **The Quantos head hangs in a clip on a linear rail.** The head is the photographed one: a clear
+  cartridge, a white cap, a steel collar and nozzle at the bottom. The gripper takes it between its pads,
+  not its fingertips, so it hangs `GRIPPER_PADS` behind and above the file's TCP point, and the vial
+  holder is under that. A silver clip on an arm from a carriage on a wide white rail up the back of the
+  chamber holds it by the collar, upright, exactly where the robot drops it. `add_solid` plays
+  `quantos.dose()`: the head rides straight down until its nozzle is at the vial mouth, the powder flows,
+  and it rides back up. The chamber's top glass rides on the same carriage, just under the head's collar
+  with the nozzle through it: the chamber walls reach up to it, so it closes the chamber while the head
+  is parked, and it comes down into the chamber with the head to dose. There is no front window and no
+  module box.
+- **The gripper** is a thin two-jaw gripper hung under a black bracket, lying along the bracket with its
+  pads facing each other at the jaw tips and four thin fingers (two per jaw) hanging straight down to the TCP.
+  It grabs either way: vials from above between the fingertips, the dosing head sideways between the
+  pads. The jaws open only a little wider than what they hold, never flat out, and nothing stands proud
+  of the gripper, so it fits through the balance door. The 16 mL vial is drawn 20 mm across.
+- **The tray is slid `TRAY_SHIFT` (15 cm along the rack)** so its vial tops are clear of the dosing-head
+  rack's lower row (the file's slots sit right under it), and its slots are spread to `TRAY_PITCH` (32 mm,
+  the file's 25 mm leaves no room for a finger between two vials). The rack is at the UR3e model's reach
+  and cannot move away; the tray cannot come toward the robot (its safe points go out of reach within 2 cm).
+- **Nothing guessed is drawn any more**: the solvent tray and the VICI valve are gone. The webcam stays,
+  because `place_vial_in_analysis_station` holds the vial up to it.
 - **The arm is a UR3e**: `public/ur3e.urdf` is `ur3.urdf` with the e-series joint origins and visual
   offsets from ros-industrial's `ur_description` (`config/ur3e/*.yaml`); the meshes come from the same
   repository through the CDN. The file's `positive_x` home pose lands within 1.5 cm of the model.
@@ -57,15 +82,16 @@ npm run build    # type-check, then write ../beavers_bench/static (commit the re
   weigh balance and no solid dosing (its balance position is estimated). On the second, `add_solid`
   shows the call and does nothing else.
 - **No stir plate.** The simulator's calls still run: the vial "at" the stir plate stays in the gripper
-  and `start_stirring` makes the arm invert it (wrist 2 turns it over and back, twice), which is how
-  the lab mixes. It is `virtual` in `deck.ts`, so it can be given a real location later.
+  and `start_stirring` makes the arm rock it (wrist 2 tilts it 30 degrees one way, then the other, three
+  times: `mixing` in `deck.ts`), which is how the lab mixes. It is `virtual` in `deck.ts`, so it can be given a real location later.
 - **The camera is the analysis station.** `place_vial_in_analysis_station` has the arm hold the vial up
   in front of the webcam (a `hold` station: no release), `analyze` flashes the lens, and
   `pick_up_vial_in_analysis_station` just goes home. The webcam's position is estimated from the photos.
-- **Capping is a two-party move.** The capper is a box with two jaws and nothing above the vial. For
-  `uncap_vial` the arm goes to the capped vial, closes on the cap `uncapping_z_offset` above the vial's
-  grab pose, the jaws grip and spin the vial, and the arm carries the cap to the file's
-  `vial_cap_at_cap_holder` location. `cap_vial` fetches it back and the jaws spin the other way.
+- **Capping is a two-party move.** The capper is a white box with two white blocks on a turntable and
+  nothing above the vial. For `uncap_vial` the arm goes to the capped vial, closes on the cap
+  `uncapping_z_offset` above the vial's grab pose, the blocks close on the vial and turn with it, spinning
+  the vial out of the cap the arm holds still, and the arm carries the cap to the file's
+  `vial_cap_at_cap_holder` location. `cap_vial` fetches it back and the blocks turn the other way.
 - **The TLH** is a gripped block with a needle whose tip is 55 mm below the TCP, parked at its wash
   station (the station block behind it, away from the robot, with tubing out of the bottom). The file
   doses with the TCP 50 mm above the vial's grab pose, so the tip goes 38 mm into the vial and clears

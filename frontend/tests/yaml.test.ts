@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { load } from 'js-yaml';
 import { describe, expect, it } from 'vitest';
-import { DECK, FILE_POINTS, type Pose } from '../src/deck';
+import { DECK, FILE_POINTS, QUANTOS_FILE_HOOK, QUANTOS_SHIFT, TRAY_PITCH, TRAY_SHIFT, heldAtPads, type Pose } from '../src/deck';
 
 const doc = load(readFileSync(join(__dirname, '..', 'deck', 'locations_education_deck.yaml'), 'utf8')) as Record<string, any>;
 
@@ -38,10 +38,14 @@ describe('deck.ts against locations_education_deck.yaml', () => {
       samePose(point(`tray_${n}.bottom_left`), tr.bottom_left, `tray_${n}.bottom_left`);
       samePose(point(`tray_${n}.bottom_right`), tr.bottom_right, `tray_${n}.bottom_right`);
     }
+    // the drawn tray is the file's tray_2 slid TRAY_SHIFT along the rack, clear of the dosing heads, with its
+    // slots spread to TRAY_PITCH so the gripper's fingers fit between the vials
     const t2 = doc.vial_at_vial_tray.tray_2;
-    samePose(DECK.tray.grab, t2.grab, 'DECK.tray.grab');
-    samePose(DECK.tray.bottomLeft, t2.bottom_left, 'DECK.tray.bottomLeft');
-    samePose(DECK.tray.bottomRight, t2.bottom_right, 'DECK.tray.bottomRight');
+    const unshift = (p: Pose): Pose => ({ ...p, x: p.x - TRAY_SHIFT[0], y: p.y - TRAY_SHIFT[1], z: p.z - TRAY_SHIFT[2] });
+    samePose(unshift(DECK.tray.grab), t2.grab, 'DECK.tray.grab');
+    expect(DECK.tray.grab.x - DECK.tray.bottomLeft.x).toBeCloseTo((t2.rows - 1) * TRAY_PITCH, 9);
+    expect(DECK.tray.bottomLeft.y - DECK.tray.bottomRight.y).toBeCloseTo((t2.columns - 1) * TRAY_PITCH, 9);
+    expect(TRAY_PITCH).toBeGreaterThan(2 * DECK.vial.radius + 0.008); // room for a finger between two vials
     expect(DECK.tray.rows).toBe(t2.rows);
     expect(DECK.tray.cols).toBe(t2.columns);
     expect(DECK.tray.approach * 1000).toBe(t2.approach.z);
@@ -60,18 +64,27 @@ describe('deck.ts against locations_education_deck.yaml', () => {
     samePose(DECK.capHolder.grab, doc.vial_cap_at_cap_holder.grab, 'cap holder');
 
     // the Quantos vial seat is deliberately NOT the file's vial_at_quantos (the bench has the Quantos
-    // elsewhere); it sits under the file's dosing-head hook instead, and the file's point is still listed
+    // elsewhere); it sits right under the dosing-head hook instead, and the file's point is still listed
     const q = doc.vial_at_quantos.vial_16_ml;
     samePose(point('vial_at_quantos'), q.grab, 'vial_at_quantos (file point)');
     expect(DECK.stations.weigh_balance.location.approach * 1000).toBe(q.approach.z);
     expect(DECK.stations.weigh_balance.location.gripperOpen).toBe(doc.gripper_positions[q.gripper_open]);
-    expect(DECK.stations.weigh_balance.location.grab.x).toBeCloseTo(DECK.dosingHeads!.quantos.grab.x, 6);
+    // the head hangs where the gripper's pads hold it, a little in front of the hook TCP point; the vial holder is under that
+    const head = heldAtPads(DECK.dosingHeads!.quantos.grab);
+    expect(DECK.stations.weigh_balance.location.grab.x).toBeCloseTo(head.x, 6);
+    expect(DECK.stations.weigh_balance.location.grab.y).toBeCloseTo(head.y, 6);
 
     for (let i = 1; i <= 8; i++) {
       samePose(DECK.dosingHeads!.rack[i - 1].grab, doc.dosing_head_at_rack[`dosing_head_${i}`].grab, `dosing_head_${i}`);
     }
+    // the whole Quantos, hook included, is slid QUANTOS_SHIFT toward the robot; the file's point is still listed
+    expect(DECK.stations.weigh_balance.location.safe.y).toBeLessThan(-0.15); // the arm comes in and out sideways, clear of the door
     const hq = doc.dosing_head_at_quantos;
-    samePose(DECK.dosingHeads!.quantos.grab, hq.grab, 'dosing_head_at_quantos');
+    samePose(point('dosing_head_at_quantos'), hq.grab, 'dosing_head_at_quantos (file point)');
+    samePose(QUANTOS_FILE_HOOK, hq.grab, 'QUANTOS_FILE_HOOK');
+    const g = DECK.dosingHeads!.quantos.grab;
+    expect([g.x - QUANTOS_SHIFT[0], g.y - QUANTOS_SHIFT[1], g.z - QUANTOS_SHIFT[2]].map((v) => +(v * 1000).toFixed(3))).toEqual([hq.grab.x, hq.grab.y, hq.grab.z]);
+    expect(g.rz).toBe(hq.grab.rz);
     expect(DECK.dosingHeads!.quantos.safe.y! * 1000).toBe(hq.safe.y);
     expect(DECK.dosingHeads!.quantos.bufferSafe!.y! * 1000).toBe(hq.buffer_safe.y);
     expect(DECK.dosingHeads!.quantos.bufferSafe!.z! * 1000).toBe(hq.buffer_safe.z);

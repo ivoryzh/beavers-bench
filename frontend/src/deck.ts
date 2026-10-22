@@ -13,7 +13,7 @@
 // Two benches share this file: one has a Quantos (powder dosing with its own balance), the other a
 // plain weigh balance with a vial holder and no solid dosing. `buildDeck` picks one (`balance`).
 // Things the file does not have are marked `estimated`; the simulator's stir plate and analysis
-// station are `virtual`: this deck has neither, mixing is the arm inverting the vial it holds.
+// station are `virtual`: this deck has neither, mixing is the arm rocking the vial it holds.
 import type { Joints } from './kinematics';
 import type { Vec3 } from './mat4';
 
@@ -109,7 +109,7 @@ export interface DeckDef {
     quantos: Location;
   } | null;
   capHolder: Location;
-  mixing: { cycles: number; seconds: number }; // the arm inverts the held vial this many times
+  mixing: { cycles: number; seconds: number; tiltDeg: number }; // the arm rocks the held vial this many times, this far each way
   scenery: SceneryDef[];
 }
 
@@ -118,17 +118,43 @@ const mm = (x: number, y: number, z: number, rz: number): Pose => ({ x: x / 1000
 
 const TABLE_TOP = -0.015; // the robot stands on a thin Vention plate (estimated)
 
-const VIAL_16_ML: VialDef = { radius: 0.0115, height: 0.062, gripHeight: 0.045, capColor: '#1f2937' };
+const VIAL_16_ML: VialDef = { radius: 0.010, height: 0.062, gripHeight: 0.045, capColor: '#1f2937' };
 
+// tray_2 is slid TRAY_SHIFT along the rack, away from the dosing heads: the file's slots put the vial tops
+// right under the rack's lower row. The rack is at the UR3e model's reach, so it cannot move away instead,
+// and the tray cannot come toward the robot (its safe points go out of reach within 2 cm).
+export const TRAY_SHIFT: Vec3 = [0, 0.15, 0];
+// and its slots are spread to TRAY_PITCH (the file's 25 mm leaves no room for the gripper's fingers between vials)
+export const TRAY_PITCH = 0.032;
+const shifted = (p: Pose, d: Vec3): Pose => ({ ...p, x: p.x + d[0], y: p.y + d[1], z: p.z + d[2] });
+const TRAY_GRAB = shifted(mm(547.2, 71.9, 91.5, -90), TRAY_SHIFT);
 const trayCommon = { approach: 0.09, safe: { y: -0.1, z: 0.05 }, deckPosition: 'positive_x' as DeckPosition };
 
 const capping: Location = { grab: mm(157.0, -514.0, 205.9, 180), approach: 0.05, safe: { y: -0.15 }, deckPosition: 'negative_y', gripperOpen: 60 };
 // The file's vial_at_quantos (502.1, -169.0, 191.0) is not where this Quantos stands: the bench has it at
-// the far end of the capping side, its dosing-head hook on the file's dosing_head_at_quantos point and the
-// balance pan directly under that hook (the head carrier lowers the gun onto the vial). The vial seat is
-// therefore placed under the hook, estimated; the hook itself is the file's.
-const QUANTOS_HOOK = mm(393.6, -355.8, 294.5, 180);
-const quantosVial: Location = { grab: { x: QUANTOS_HOOK.x, y: QUANTOS_HOOK.y - 0.045, z: 0.135, rz: 180 }, approach: 0.04, safe: { y: -0.1 }, deckPosition: 'negative_y', gripperOpen: 40, door: 'weigh_balance' };
+// the far end of the capping side, its dosing-head hook on the file's dosing_head_at_quantos point and
+// the vial holder on the balance pan directly under that hook (the head only rides up and down, so the
+// vial must be where the head is dropped). The whole Quantos, hook included, is slid QUANTOS_SHIFT into
+// the table's far corner so the capping station is clear of its side door (vials go in through that
+// door, from the robot's side); the file's own hook point is still listed in FILE_POINTS. Vial seat estimated.
+export const QUANTOS_FILE_HOOK = mm(393.6, -355.8, 294.5, 180);
+export const QUANTOS_SHIFT: Vec3 = [0.02, -0.04, 0]; // as far into the corner as the arm can still dock the head
+const QUANTOS_HOOK: Pose = { ...QUANTOS_FILE_HOOK, x: QUANTOS_FILE_HOOK.x + QUANTOS_SHIFT[0], y: QUANTOS_FILE_HOOK.y + QUANTOS_SHIFT[1], z: QUANTOS_FILE_HOOK.z + QUANTOS_SHIFT[2] };
+// The gripper lies flat along its bracket with the jaw pads facing each other at its tips, and four thin
+// fingers hang straight down from the jaws to the TCP. It grabs either way: vials from above between the
+// fingertips, the dosing head sideways between the pads, which are GRIPPER_PADS behind and above the
+// fingertips. So the head hangs at `heldAtPads(hook)`, and the vial holder is under that.
+export const GRIPPER_PADS = { back: 0.01, up: 0.031 }; // the pads are at the jaw tips, in the thin housing under the bracket; the fingers hang from there to the TCP
+export function heldAtPads(p: Pose): Pose {
+  const c = Math.cos(deg(p.rz)), s = Math.sin(deg(p.rz));
+  return { x: p.x + s * GRIPPER_PADS.back, y: p.y - c * GRIPPER_PADS.back, z: p.z + GRIPPER_PADS.up, rz: p.rz };
+}
+const QUANTOS_HEAD = heldAtPads(QUANTOS_HOOK);
+// The vial goes in through the side door, gripped like a tray vial (rz -90: the gripper reaches +x), the way
+// the lab loads the balance: the arm comes down OUTSIDE the balance (buffer safe, high -> safe, at the
+// approach height, 7 cm clear of the door), slides straight in over the holder, drops 4 cm to seat the
+// vial, lifts, slides straight back out, and only then does the door close.
+const quantosVial: Location = { grab: { x: QUANTOS_HEAD.x, y: QUANTOS_HEAD.y, z: 0.135, rz: -90 }, approach: 0.04, safe: { y: -0.2 }, bufferSafe: { y: -0.2, z: 0.12 }, deckPosition: 'negative_y', gripperOpen: 40, door: 'weigh_balance' };
 // the plain balance of the other bench: not in the file, placed where the photos show it, in front of the robot
 const plainBalance: Location = { grab: { x: 0.40, y: -0.30, z: TABLE_TOP + 0.075 + 0.035 + VIAL_16_ML.gripHeight, rz: -90 }, approach: 0.09, safe: { y: -0.1, z: 0.05 }, deckPosition: 'positive_x', gripperOpen: 22 };
 // stations the simulator has and this deck does not: the vial just stays in the gripper
@@ -167,10 +193,10 @@ export function buildDeck(balance: BalanceModule = 'quantos'): DeckDef {
     gripper: { closed: 0, open: 110 },
     vial: VIAL_16_ML,
     tray: {
-      label: 'Sample tray (tray_2, 16 mL)',
-      grab: mm(547.2, 71.9, 91.5, -90),
-      bottomLeft: mm(446.5, 71.37, 91.5, -90),
-      bottomRight: mm(447.4, 22.94, 91.5, -90),
+      label: 'Sample tray',
+      grab: TRAY_GRAB,
+      bottomLeft: { ...TRAY_GRAB, x: TRAY_GRAB.x - 4 * TRAY_PITCH },
+      bottomRight: { ...TRAY_GRAB, x: TRAY_GRAB.x - 4 * TRAY_PITCH, y: TRAY_GRAB.y - 2 * TRAY_PITCH },
       rows: 5,
       cols: 3,
       ...trayCommon,
@@ -192,8 +218,8 @@ export function buildDeck(balance: BalanceModule = 'quantos'): DeckDef {
       weigh_balance: quantos
         ? {
             id: 'weigh_balance', label: 'Quantos: balance + powder dosing', location: quantosVial, estimated: true,
-            footprint: { w: 0.26, d: 0.33, h: 0.0 }, center: [QUANTOS_HOOK.x, QUANTOS_HOOK.y - 0.18], color: '#e5e7eb', draw: 'quantos',
-            note: 'At the far end of the capping side, its dosing-head hook on the file\'s dosing_head_at_quantos point and the balance pan under it. The side door slides to the back for the arm. Vial seat estimated.',
+            footprint: { w: 0.26, d: 0.33, h: 0.0 }, center: [QUANTOS_HOOK.x, QUANTOS_HOOK.y - 0.055], color: '#e5e7eb', draw: 'quantos',
+            note: 'In the table\'s far corner, slid a little from the file\'s dosing_head_at_quantos point so the capping station clears its side door; the vial holder is in the middle of the chamber, right under the hook. The side door slides to the back for the arm, which comes in and out sideways; to dose, the head rides down its linear rail to the vial mouth. Vial seat estimated.',
           }
         : {
             id: 'weigh_balance', label: 'Weigh balance', location: plainBalance, estimated: true,
@@ -212,9 +238,9 @@ export function buildDeck(balance: BalanceModule = 'quantos'): DeckDef {
             note: 'No solid dosing on this bench: the simulator call is shown, the vial stays in the gripper.',
           },
       stir_plate: {
-        id: 'stir_plate', label: 'Mixing (the arm inverts the vial)', location: virtualLocation,
+        id: 'stir_plate', label: 'Mixing (the arm rocks the vial)', location: virtualLocation,
         footprint: { w: 0, d: 0, h: 0 }, color: '#99f6e4', draw: 'none', virtual: true,
-        note: 'No stir plate: mixing is the arm turning the vial it holds upside down and back.',
+        note: 'No stir plate: mixing is the arm rocking the vial it holds a few tens of degrees each way.',
       },
       analysis_station: {
         id: 'analysis_station', label: 'Camera (webcam)', location: cameraHold, estimated: true,
@@ -235,11 +261,8 @@ export function buildDeck(balance: BalanceModule = 'quantos'): DeckDef {
     camera: { position: CAMERA_POSITION, label: 'Webcam' },
     dosingHeads: quantos ? DOSING_HEADS : null,
     capHolder: { grab: mm(23.8, -498.0, 152.2, 180), approach: 0.03, safe: { y: -0.1 }, deckPosition: 'negative_y', gripperOpen: 60 },
-    mixing: { cycles: 2, seconds: 3.2 },
-    scenery: [
-      ...(quantos ? [] : [{ id: 'solvent_tray', label: 'Solvent tray', center: [0.40, -0.52, TABLE_TOP] as Vec3, footprint: { w: 0.32, d: 0.22, h: 0.06 }, color: '#16a34a', kind: 'bottles' as const, estimated: true }]),
-      { id: 'vici_valve', label: 'VICI valve', center: quantos ? [0.08, -0.65, TABLE_TOP] : [0.18, -0.62, TABLE_TOP], footprint: { w: 0.08, d: 0.08, h: 0.11 }, color: '#1f2937', kind: 'box', estimated: true },
-    ],
+    mixing: { cycles: 3, seconds: 3.2, tiltDeg: 30 },
+    scenery: [], // the guessed solvent tray and VICI valve are gone: only what the calls use is drawn
   };
 }
 
@@ -270,7 +293,7 @@ export const FILE_POINTS: FilePoint[] = [
   { name: 'tlh_at_base_station', pose: mm(-43.9, -577.8, 212.2, -180), group: 'tlh' },
   { name: 'tlh_at_capping_station (relative)', pose: { x: capping.grab.x, y: capping.grab.y + 0.0046, z: capping.grab.z + 0.05, rz: capping.grab.rz }, group: 'tlh' },
   { name: 'vial_at_quantos', pose: mm(502.1, -169.0, 191.0, -90), group: 'quantos' },
-  { name: 'dosing_head_at_quantos', pose: DOSING_HEADS.quantos.grab, group: 'quantos' },
+  { name: 'dosing_head_at_quantos', pose: QUANTOS_FILE_HOOK, group: 'quantos' },
   ...DOSING_HEADS.rack.map((l, i) => ({ name: `dosing_head_${i + 1}`, pose: l.grab, group: 'heads' as const })),
 ];
 

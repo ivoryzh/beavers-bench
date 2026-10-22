@@ -60,7 +60,7 @@ body {
 .viewport {
   position: relative;
   min-width: 0;
-  background: radial-gradient(ellipse at 50% 30%, color-mix(in srgb, var(--bg) 85%, #ffffff) 0%, var(--bg) 70%);
+  background: #ffffff;
 }
 html.dark .viewport {
   background: radial-gradient(ellipse at 50% 30%, #182030 0%, var(--bg) 70%);

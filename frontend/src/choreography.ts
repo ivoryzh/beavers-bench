@@ -15,7 +15,7 @@ export type Step =
   | { kind: 'attach'; code: string; what: Held }
   | { kind: 'detach'; code: string; what: Held; at: string; slot?: number }
   | { kind: 'station'; code: string; station: string; action: string; args: unknown[]; seconds: number }
-  | { kind: 'mix'; code: string; cycles: number; seconds: number }
+  | { kind: 'mix'; code: string; cycles: number; seconds: number; tilt: number } // tilt in radians, each way
   | { kind: 'wait'; code: string; seconds: number };
 
 export interface Choreography {
@@ -150,7 +150,7 @@ export function choreograph(event: SimEvent, slotHint: number | null, deck: Deck
       const rackSlot = deck.dosingHeads.rack[0];
       steps.push(...pick('dosing_head_1', rackSlot, 'head'));
       steps.push(...place('dosing_head_at_quantos', deck.dosingHeads.quantos, 'head', 'quantos_head'));
-      steps.push({ kind: 'station', code: `quantos.dose(${fmtArgs(args ?? [])})`, station: 'solid_addition_station', action, args: args ?? [], seconds: 2.0 });
+      steps.push({ kind: 'station', code: `quantos.dose(${fmtArgs(args ?? [])})`, station: 'solid_addition_station', action, args: args ?? [], seconds: 3.0 }); // the head rides down to the vial, powder, back up
       steps.push(...pick('dosing_head_at_quantos', deck.dosingHeads.quantos, 'head'));
       steps.push(...place('dosing_head_1', rackSlot, 'head', 'head_rack_1'));
     } else {
@@ -186,8 +186,8 @@ export function choreograph(event: SimEvent, slotHint: number | null, deck: Deck
     steps.push({ kind: 'station', code: action === 'zero' ? `${dev}.zero()` : `${dev}.weigh()`, station: 'weigh_balance', action, args: args ?? [], seconds: 0.8 });
   } else if (instrument === 'stir_plate') {
     if (action === 'start_stirring') {
-      note = 'no stir plate: the arm mixes by inverting the vial';
-      steps.push({ kind: 'mix', code: `arm.invert_vial(times=${deck.mixing.cycles})`, cycles: deck.mixing.cycles, seconds: deck.mixing.seconds });
+      note = 'no stir plate: the arm mixes by rocking the vial';
+      steps.push({ kind: 'mix', code: `arm.rock_vial(times=${deck.mixing.cycles}, degrees=${deck.mixing.tiltDeg})`, cycles: deck.mixing.cycles, seconds: deck.mixing.seconds, tilt: deg(deck.mixing.tiltDeg) });
     } else {
       note = 'mixing already done by the arm';
     }

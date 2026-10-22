@@ -242,8 +242,8 @@ export class Animator {
         this.view.station(step.station, step.action, step.args, t, false);
         return;
       case 'mix': {
-        // wrist 2 turns the gripper over and back: 0 -> 180 deg -> 0, `cycles` times
-        const swing = Math.PI * Math.sin(Math.PI * step.cycles * t) ** 2;
+        // wrist 2 rocks the gripper `tilt` one way, then the other, `cycles` times, ending level
+        const swing = step.tilt * Math.sin(2 * Math.PI * step.cycles * t);
         this.joints = [...this.fromJoints] as Joints;
         this.joints[4] = this.fromJoints[4] + swing;
         this.view.setJoints(this.joints);

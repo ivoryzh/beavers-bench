@@ -7,7 +7,7 @@ import { CSS2DObject, CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRe
 import URDFLoader, { type URDFRobot } from 'urdf-loader';
 import type { ArmView } from './animator';
 import { approachPose, safePose, type Held } from './choreography';
-import { DECK, FILE_POINTS, TRAY_SLOT_COUNT, isTraySlot, slotGrab, vialSeat, type DeckDef, type Location, type Pose, type StationDef, type TrayDef, type VialDef } from './deck';
+import { GRIPPER_PADS, heldAtPads, DECK, FILE_POINTS, TRAY_SLOT_COUNT, isTraySlot, slotGrab, vialSeat, type DeckDef, type Location, type Pose, type StationDef, type TrayDef, type VialDef } from './deck';
 import { UR3, UR3E, fk, jointOrigins, type Joints } from './kinematics';
 import type { Mat4, Vec3 } from './mat4';
 import type { SimState } from './simulator';
@@ -30,6 +30,9 @@ function zCylinder(r: number, h: number, material: THREE.Material, rTop = r, seg
 }
 
 /** A box standing on its bottom face (origin at the bottom centre). */
+const HEAD_TIP = 0.057;    // a dosing head's nozzle tip is this far below its centre (its grip point)
+const HEAD_COLLAR = 0.045; // its collar, where the Quantos holder clips it
+
 function box(w: number, d: number, h: number, material: THREE.Material): THREE.Mesh {
   const g = new THREE.BoxGeometry(w, d, h);
   g.translate(0, 0, h / 2);
@@ -129,6 +132,19 @@ interface StationView {
   door?: { mesh: THREE.Mesh; closedY: number; travel: number };
 }
 
+/**
+ * The Quantos head carrier: a clip on an arm from a carriage that rides a wide linear rail up the back
+ * of the chamber holds the head by its collar, upright, exactly where the robot drops it, and rides it
+ * straight down to the vial to dose. The chamber's top glass rides with it.
+ */
+interface DosingRig {
+  collar: Vec3;        // where the head's collar is when the robot drops it (its centre is at the pads then)
+  doseCollar: Vec3;    // the collar when the nozzle tip is at the vial mouth
+  rz: number;          // the head's yaw, the file's
+  carrier: THREE.Group;
+  stream: THREE.Mesh;
+}
+
 export interface SceneApi extends ArmView {
   debug(): Record<string, unknown>;
   applyState(state: SimState): void;
@@ -140,6 +156,7 @@ export interface SceneApi extends ArmView {
   clearTrail(): void;
   resize(): void;
   view(preset: ViewPreset): void;
+  look(target: Vec3, from: Vec3): void; // any camera, in deck coordinates (metres, z up): for scripting and recordings
   armReady: Promise<void>;
 }
 
@@ -156,6 +173,8 @@ export function createScene(container: HTMLElement, deck: DeckDef = DECK): Scene
   container.appendChild(labelRenderer.domElement);
 
   const scene = new THREE.Scene();
+  // light theme: a white canvas (so recordings of it are white too); dark theme: see through to the page's gradient
+  if (!document.documentElement.classList.contains('dark')) scene.background = new THREE.Color(0xffffff);
   const camera = new THREE.PerspectiveCamera(42, 1, 0.02, 20);
   // the canvas takes the mouse (the label layer above it lets events through), so drag orbits, wheel zooms, right-drag pans
   const controls = new OrbitControls(camera, renderer.domElement);
@@ -203,6 +222,8 @@ export function createScene(container: HTMLElement, deck: DeckDef = DECK): Scene
   const whiteMat = new THREE.MeshStandardMaterial({ color: 0xf3f4f6, roughness: 0.55 });
   const steelMat = new THREE.MeshStandardMaterial({ color: 0xb8bec8, metalness: 0.8, roughness: 0.35 });
   const darkMat = new THREE.MeshStandardMaterial({ color: 0x374151, roughness: 0.7 });
+  const silverMat = new THREE.MeshStandardMaterial({ color: 0xd9dde3, metalness: 0.35, roughness: 0.4 });
+  const blackMat = new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.55 });
   const rackMat = new THREE.MeshStandardMaterial({ color: 0xd8d2c4, roughness: 0.7 });
   const holeMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 1 });
   const accentMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, emissive: 0x38bdf8, emissiveIntensity: 0.4, transparent: true, opacity: 0.55 });
@@ -287,6 +308,7 @@ export function createScene(container: HTMLElement, deck: DeckDef = DECK): Scene
 
   // ── stations ────────────────────────────────────────────────────────────────────────────────
   const stations: Record<string, StationView> = {};
+  let dosingRig: DosingRig | null = null;
   for (const def of Object.values(deck.stations)) {
     if (def.virtual) continue;
     const group = new THREE.Group();
@@ -306,7 +328,7 @@ export function createScene(container: HTMLElement, deck: DeckDef = DECK): Scene
       if (def.draw === 'balance') {
         const pan = zCylinder(0.055, 0.004, steelMat);
         pan.position.set(seat[0], seat[1], boxTop);
-        const holder = zCylinder(0.02, seat[2] - boxTop - 0.004, steelMat);
+        const holder = zCylinder(0.03, seat[2] - boxTop - 0.004, whiteMat, 0.026);
         holder.position.set(seat[0], seat[1], boxTop + 0.004);
         const display = box(0.04, 0.06, 0.012, darkMat);
         display.position.set(center[0] + fp.w / 2 - 0.03, center[1] + fp.d / 2 - 0.04, boxTop);
@@ -317,76 +339,133 @@ export function createScene(container: HTMLElement, deck: DeckDef = DECK): Scene
         group.add(ped);
       }
     } else if (def.draw === 'capper') {
-      // a box up to the vial seat with two jaws beside the vial: they close on it and spin it while
-      // the arm holds the cap still. Nothing above the vial.
-      body = box(fp.w, fp.d, seat[2] - t.top, mat);
+      // a white box up to the vial seat with two white blocks beside the vial: they close on it and
+      // turn with it, spinning the vial while the arm holds the cap still. Nothing above the vial.
+      body = box(fp.w, fp.d, seat[2] - t.top, whiteMat.clone()); // its own white: the flash on an action must not light every white part
       body.position.set(...center);
-      const jawL = box(0.022, 0.05, 0.03, darkMat);
-      const jawR = box(0.022, 0.05, 0.03, darkMat);
-      jawL.position.set(seat[0] - 0.035, seat[1], seat[2] + 0.008);
-      jawR.position.set(seat[0] + 0.035, seat[1], seat[2] + 0.008);
-      const rail = box(0.1, 0.02, 0.006, steelMat);
-      rail.position.set(seat[0], seat[1] + 0.03, seat[2]);
-      group.add(body, jawL, jawR, rail);
+      const jaws = new THREE.Group();
+      const jawL = box(0.022, 0.05, 0.03, whiteMat);
+      const jawR = box(0.022, 0.05, 0.03, whiteMat);
+      jawL.position.set(-0.035, 0, 0);
+      jawR.position.set(0.035, 0, 0);
+      jaws.add(jawL, jawR);
+      jaws.position.set(seat[0], seat[1], seat[2] + 0.008);
+      const turntable = zCylinder(0.055, 0.008, whiteMat);
+      turntable.position.set(seat[0], seat[1], seat[2]);
+      group.add(body, jaws, turntable);
+      extras.jaws = jaws;
       extras.jawL = jawL;
       extras.jawR = jawR;
     } else if (def.draw === 'quantos') {
-      // An XPR-style Quantos: the weighing chamber is the front third (toward +y, where the robot's
-      // side door is), the balance body the back two thirds. The dosing module sits on top of the
-      // chamber with the head hook under its front edge (the file's dosing_head_at_quantos point);
-      // the carrier lowers the head onto the vial on the pan below.
+      // An XPR-style Quantos: the weighing chamber is the front part (toward +y), the balance body
+      // the back. The dosing head hangs from its collar where the arm drops it (the hook, the file's
+      // dosing_head_at_quantos point), above the chamber, on an arm from a carriage that rides a
+      // vertical linear rail at the back of the chamber. The vial stands in a holder on the pan right
+      // under the head. To dose, the carriage takes the head straight down until its tip is at the vial
+      // mouth, the powder flows, and it rides back up. Nothing else moves: no window, no module box.
       const q = deck.dosingHeads!.quantos.grab;
-      const front = center[1] + fp.d / 2;          // +y face, the chamber front
-      const chamberD = 0.16;
-      const chamberH = 0.30;
+      const front = center[1] + fp.d / 2;          // the +y face of the chamber
+      const chamberD = 0.22;                       // the head and the vial holder are in the middle of it
+      const chamberBack = front - chamberD;
+      const headAt = heldAtPads(q);               // the head's centre, between the gripper's pads at the hook
+      const LID_UNDER_COLLAR = 0.016;              // the top glass rides this far under the head's collar
+      // the walls reach up to the top glass where it sits with the head parked: the glass closes the chamber
+      const chamberH = headAt.z - HEAD_COLLAR - LID_UNDER_COLLAR - 0.003 - t.top;
+      const holderH = 0.03;                        // the vial holder on the pan
       const glassy = new THREE.MeshPhysicalMaterial({ color: 0xe8eef7, roughness: 0.1, transparent: true, opacity: 0.3, depthWrite: false });
       // balance body at the back, lower, with the display on its top
       const bodyBox = box(fp.w, fp.d - chamberD, 0.22, mat);
-      bodyBox.position.set(center[0], front - chamberD - (fp.d - chamberD) / 2, t.top);
+      bodyBox.position.set(center[0], chamberBack - (fp.d - chamberD) / 2, t.top);
       const display = box(0.08, 0.05, 0.01, darkMat);
-      display.position.set(center[0], front - chamberD - 0.05, t.top + 0.22);
-      // chamber floor (the weighing pan level), glass walls on three sides, the robot's side is the door
-      const floor = box(fp.w, chamberD, seat[2] - 0.004 - t.top, mat);
+      display.position.set(center[0], chamberBack - 0.05, t.top + 0.22);
+      // chamber floor, the pan on it, the vial holder on the pan; glass walls on three sides, the robot's side is the door
+      const panZ = seat[2] - holderH - 0.004;
+      const floor = box(fp.w, chamberD, panZ - t.top, mat);
       floor.position.set(center[0], front - chamberD / 2, t.top);
-      const pan = zCylinder(0.035, 0.004, steelMat);
-      pan.position.set(seat[0], seat[1], seat[2] - 0.004);
+      const pan = zCylinder(0.045, 0.004, steelMat);
+      pan.position.set(seat[0], seat[1], panZ);
+      const holder = zCylinder(0.032, holderH, whiteMat, 0.028);
+      holder.position.set(seat[0], seat[1], panZ + 0.004);
       const glassFront = box(fp.w, 0.01, chamberH, glassy);
       glassFront.position.set(center[0], front - 0.005, t.top);
       const glassBack = box(fp.w, 0.01, chamberH, glassy);
-      glassBack.position.set(center[0], front - chamberD + 0.005, t.top);
+      glassBack.position.set(center[0], chamberBack + 0.005, t.top);
       const glassFar = box(0.01, chamberD, chamberH, glassy);
       glassFar.position.set(center[0] + fp.w / 2 - 0.005, front - chamberD / 2, t.top);
       const frame1 = box(0.012, 0.012, chamberH, steelMat);
       frame1.position.set(center[0] + fp.w / 2 - 0.006, front - 0.006, t.top);
       const frame2 = box(0.012, 0.012, chamberH, steelMat);
       frame2.position.set(center[0] - fp.w / 2 + 0.006, front - 0.006, t.top);
-      // the dosing module on top of the chamber, and the carrier with the hook the gun hangs from
-      const moduleBox = box(fp.w, chamberD + 0.02, 0.09, mat);
-      moduleBox.position.set(center[0], front - chamberD / 2 + 0.01, t.top + chamberH);
+      // the wide white linear rail up the back of the chamber, well past its top, with its steel guide,
+      // and the silver carriage that rides it; an arm out to the clip that holds the head's collar
+      const railY = chamberBack + 0.03;
+      const railTop = headAt.z + 0.14;
+      const rail = box(0.09, 0.03, railTop - t.top, whiteMat);
+      rail.position.set(headAt.x, railY, t.top);
+      const guide = box(0.03, 0.006, railTop - t.top - 0.02, silverMat);
+      guide.position.set(headAt.x, railY + 0.015 + 0.003, t.top + 0.01);
       const carrier = new THREE.Group();
-      const carrierArm = box(0.05, 0.03, 0.03, darkMat);
-      carrierArm.position.set(0, 0, 0);
-      const hook = box(0.03, 0.012, 0.012, steelMat);
-      hook.position.set(0, -0.01, -0.012);
-      carrier.add(carrierArm, hook);
-      carrier.position.set(q.x, q.y + 0.02, q.z + 0.02);
+      const carriage = zCylinder(0.026, 0.07, silverMat);
+      carriage.position.set(0, railY + 0.018 + 0.026 - headAt.y, -0.035);
+      const armLen = headAt.y - 0.02 - (railY + 0.018 + 0.026);
+      const armGeom = new THREE.BoxGeometry(0.03, armLen, 0.016);
+      armGeom.translate(0, -0.02 - armLen / 2, 0);
+      const carrierArm = new THREE.Mesh(armGeom, silverMat);
+      carrierArm.castShadow = true;
+      // the clip: a bracket behind the collar and two lips that hold it from the sides
+      const clipBack = box(0.044, 0.008, 0.016, silverMat);
+      clipBack.position.set(0, -0.024, -0.008);
+      const lipL = box(0.006, 0.026, 0.016, silverMat);
+      lipL.position.set(-0.021, -0.013, -0.008);
+      const lipR = box(0.006, 0.026, 0.016, silverMat);
+      lipR.position.set(0.021, -0.013, -0.008);
+      carrier.add(carriage, carrierArm, clipBack, lipL, lipR);
+      // the chamber's top glass rides on the carrier with the head, just under its collar, the nozzle
+      // through it: it closes the chamber while the head is parked, and comes down into the chamber with
+      // the head to dose. It is notched at the back around the rail and carriage.
+      {
+        const lidZ = -LID_UNDER_COLLAR; // under the collar (the carrier's origin), the nozzle tip just clear of it
+        const inner = fp.w - 0.03;
+        const lidFrontY0 = railY + 0.015 + 0.06, lidFrontY1 = front - 0.015;
+        const lidFront = box(inner, lidFrontY1 - lidFrontY0, 0.006, glassy);
+        lidFront.position.set(0, (lidFrontY0 + lidFrontY1) / 2 - headAt.y, lidZ);
+        const lidFrame = box(inner, 0.01, 0.008, silverMat);
+        lidFrame.position.set(0, lidFrontY1 - 0.005 - headAt.y, lidZ - 0.001);
+        const sideW = (inner - 0.13) / 2;
+        const lidSideL = box(sideW, lidFrontY0 - (chamberBack + 0.015), 0.006, glassy);
+        lidSideL.position.set(-(0.065 + sideW / 2), (chamberBack + 0.015 + lidFrontY0) / 2 - headAt.y, lidZ);
+        const lidSideR = box(sideW, lidFrontY0 - (chamberBack + 0.015), 0.006, glassy);
+        lidSideR.position.set(0.065 + sideW / 2, (chamberBack + 0.015 + lidFrontY0) / 2 - headAt.y, lidZ);
+        const grommet = zCylinder(0.011, 0.01, silverMat);
+        grommet.position.set(0, 0, lidZ - 0.002);
+        carrier.add(lidFront, lidFrame, lidSideL, lidSideR, grommet);
+      }
       // the side door on the robot's side, sliding to the back (-y)
       const doorMesh = box(0.01, chamberD - 0.02, chamberH - 0.02, new THREE.MeshPhysicalMaterial({ color: 0xcfe3ff, roughness: 0.05, transparent: true, opacity: 0.35, depthWrite: false }));
       doorMesh.position.set(center[0] - fp.w / 2 + 0.005, front - chamberD / 2, t.top + 0.01);
       door = { mesh: doorMesh, closedY: front - chamberD / 2, travel: -(chamberD - 0.02) };
-      const stream = zCylinder(0.003, 0.05, solidMat);
-      stream.position.set(seat[0], seat[1], seat[2] + deck.vial.height);
+      const stream = zCylinder(0.003, 0.02, solidMat);
+      stream.position.set(seat[0], seat[1], seat[2] + deck.vial.height - 0.012);
       stream.visible = false;
-      group.add(bodyBox, display, floor, pan, glassFront, glassBack, glassFar, frame1, frame2, moduleBox, carrier, doorMesh, stream);
+      group.add(bodyBox, display, floor, pan, holder, glassFront, glassBack, glassFar, frame1, frame2, rail, guide, carrier, doorMesh, stream);
       body = floor;
       extras.stream = stream;
       extras.carrier = carrier;
+      dosingRig = {
+        collar: [headAt.x, headAt.y, headAt.z - HEAD_COLLAR],
+        doseCollar: [seat[0], seat[1], seat[2] + deck.vial.height + 0.008 + (HEAD_TIP - HEAD_COLLAR)], // nozzle tip 8 mm over the mouth
+        rz: deg(q.rz),
+        carrier,
+        stream,
+      };
     }
 
     if (def.draw !== 'none') {
-      const spot = zCylinder(deck.vial.radius * 1.25, 0.002, holeMat);
-      spot.position.set(seat[0], seat[1], seat[2] - 0.002);
-      group.add(spot);
+      if (def.draw === 'box' || def.draw === 'capper') {
+        const spot = zCylinder(deck.vial.radius * 1.25, 0.002, holeMat);
+        spot.position.set(seat[0], seat[1], seat[2] - 0.002);
+        group.add(spot);
+      }
       addWaypoints(def.location);
     }
 
@@ -422,17 +501,22 @@ export function createScene(container: HTMLElement, deck: DeckDef = DECK): Scene
   const heads: THREE.Group[] = [];
   const headMat = new THREE.MeshPhysicalMaterial({ color: 0xf1f5f9, roughness: 0.6, transparent: true, opacity: 0.8 });
   const makeHead = () => {
-    // a powder cartridge: a tube with a white cap on top and the dosing valve at the bottom
+    // a Quantos powder head: a clear cartridge with a white ribbed cap on top and, at the bottom, a
+    // stainless collar (the holder clips it there) with the dispensing nozzle under it
     const g = new THREE.Group();
-    const body = zCylinder(0.015, 0.06, headMat);
+    const body = zCylinder(0.015, 0.058, headMat);
     body.position.z = -0.03;
-    const cap = zCylinder(0.018, 0.012, whiteMat);
-    cap.position.z = 0.03;
-    const valve = zCylinder(0.008, 0.015, steelMat);
-    valve.position.z = -0.045;
-    const powder = zCylinder(0.013, 0.03, solidMat);
-    powder.position.z = -0.028;
-    g.add(body, cap, valve, powder);
+    const cap = zCylinder(0.0185, 0.014, whiteMat);
+    cap.position.z = 0.028;
+    const capRim = zCylinder(0.0195, 0.004, whiteMat);
+    capRim.position.z = 0.038;
+    const collar = zCylinder(0.0165, 0.007, silverMat);
+    collar.position.z = -0.045;
+    const nozzle = zCylinder(0.006, 0.012, silverMat, 0.009);
+    nozzle.position.z = -0.057;
+    const powder = zCylinder(0.013, 0.028, solidMat);
+    powder.position.z = -0.03;
+    g.add(body, cap, capRim, collar, nozzle, powder);
     return g;
   };
   if (deck.dosingHeads) {
@@ -442,12 +526,13 @@ export function createScene(container: HTMLElement, deck: DeckDef = DECK): Scene
     panel.position.set(Math.max(...xs) + 0.03, (Math.max(...ys) + Math.min(...ys)) / 2, t.top);
     objects.add(panel);
     rack.forEach((l, i) => {
-      const shelf = box(0.05, 0.05, 0.006, steelMat);
-      shelf.position.set(l.grab.x, l.grab.y, l.grab.z - 0.051);
+      const at = heldAtPads(l.grab); // the head's centre: between the gripper's pads when the TCP is at the file's point
+      const shelf = box(0.034, 0.05, 0.006, steelMat);
+      shelf.position.set(at.x + 0.008, at.y, at.z - HEAD_COLLAR - 0.006);
       objects.add(shelf);
       const h = makeHead();
-      h.position.set(l.grab.x, l.grab.y, l.grab.z);
-      h.rotation.z = deg(l.grab.rz);
+      h.position.set(at.x, at.y, at.z);
+      h.rotation.z = deg(at.rz);
       objects.add(h);
       heads.push(h);
       if (i === 0) addWaypoints(l);
@@ -598,36 +683,45 @@ export function createScene(container: HTMLElement, deck: DeckDef = DECK): Scene
     }
   };
 
-  // the gripper, as on the robot: an L bracket from the flange to a two-finger gripper 200 mm to the
-  // side (deck.tcp); the fingers are plates that close on the vial from both sides
+  // The gripper, as on the robot: a black bracket from the flange carries a flat two-jaw gripper
+  // lying along it, jaws toward the end, pads facing each other at the jaw tips. Four thin
+  // fingers (two per jaw) hang straight down from the jaw tips to the TCP (deck.tcp, 200 mm out and
+  // 52 mm down from the flange). Vials are taken from above between the fingertips, the dosing head
+  // sideways between the pads (GRIPPER_PADS back and up from the tips). The jaws close along x.
   const toolGroup = new THREE.Group();
+  const jawL = new THREE.Group();
+  const jawR = new THREE.Group();
   {
     const [tx, ty, tz] = deck.tcp.xyz;
-    const alu = new THREE.MeshStandardMaterial({ color: 0xc7ccd4, metalness: 0.75, roughness: 0.3 });
-    const adapter = zCylinder(0.031, 0.01, darkMat);
-    // a flat aluminium plate from the flange out to the gripper, with lightening holes suggested by a second thin plate
-    const plate = new THREE.Mesh(new THREE.BoxGeometry(0.05, Math.abs(ty) + 0.04, 0.008), alu);
-    plate.position.set(tx, ty / 2, 0.014);
+    const jawY = ty + GRIPPER_PADS.back;     // the pads, at the jaw tips
+    const bodyZ = tz - GRIPPER_PADS.up;      // the mid-plane of the thin housing and jaws, hung under the bracket
+    const jawH = 0.018;                      // nothing stands proud of the bracket: it all hangs below it
+    const adapter = zCylinder(0.031, 0.006, darkMat);
+    // the bracket: a thin black plate from the flange out over the gripper, ending where the jaws begin
+    const plate = new THREE.Mesh(new THREE.BoxGeometry(0.05, Math.abs(jawY) - 0.02, 0.006), blackMat);
+    plate.position.set(tx, (jawY + 0.025) / 2 - 0.005, 0.009);
     plate.castShadow = true;
-    const rib = new THREE.Mesh(new THREE.BoxGeometry(0.012, Math.abs(ty) - 0.02, 0.014), alu);
-    rib.position.set(tx, ty / 2, 0.025);
-    rib.castShadow = true;
-    // the Hand-E style body hanging under the end of the plate, its fingers around the TCP
-    const gripBody = zCylinder(0.027, 0.045, new THREE.MeshStandardMaterial({ color: 0x1f2937, roughness: 0.4 }));
-    gripBody.position.set(tx, ty, 0.018);
-    const collar = zCylinder(0.03, 0.006, new THREE.MeshStandardMaterial({ color: 0x2563eb, roughness: 0.4 }));
-    collar.position.set(tx, ty, 0.018);
-    const carriage = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.07, 0.014), alu);
-    carriage.position.set(tx, ty, tz - 0.03 + 0.007);
-    carriage.castShadow = true;
-    toolGroup.add(adapter, plate, rib, gripBody, collar, carriage);
+    // the housing the jaws slide in, as thin as the jaws, under the plate
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.07, jawH), blackMat);
+    body.position.set(tx, jawY + 0.035 + 0.035, bodyZ);
+    body.castShadow = true;
+    toolGroup.add(adapter, plate, body);
+    for (const [jaw, side] of [[jawL, 1], [jawR, -1]] as const) {
+      // the jaw arm out from the housing, its pad on the inside at the tip, and two fingers hanging from the tip
+      const arm = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.038, jawH), blackMat);
+      arm.position.set(tx + side * 0.011, jawY + 0.012, bodyZ);
+      arm.castShadow = true;
+      const pad = new THREE.Mesh(new THREE.BoxGeometry(0.005, 0.022, jawH - 0.004), darkMat);
+      pad.position.set(tx + side * 0.0025, jawY, bodyZ);
+      jaw.add(arm, pad);
+      for (const dy of [-0.011, 0.011]) {
+        const finger = zCylinder(0.0015, tz - (bodyZ + jawH / 2), silverMat);
+        finger.position.set(tx + side * 0.0015, ty + dy, bodyZ + jawH / 2);
+        jaw.add(finger);
+      }
+      toolGroup.add(jaw);
+    }
   }
-  const fingerMat = new THREE.MeshStandardMaterial({ color: 0xb8bec8, metalness: 0.7, roughness: 0.35 });
-  const fingerL = new THREE.Mesh(new THREE.BoxGeometry(0.022, 0.004, 0.044), fingerMat);
-  const fingerR = new THREE.Mesh(new THREE.BoxGeometry(0.022, 0.004, 0.044), fingerMat);
-  fingerL.castShadow = true;
-  fingerR.castShadow = true;
-  toolGroup.add(fingerL, fingerR);
   const tcp = new THREE.Group();
   tcp.position.set(...deck.tcp.xyz);
   tcp.rotation.x = deck.tcp.rx; // a held object stands up along the TCP z
@@ -636,11 +730,15 @@ export function createScene(container: HTMLElement, deck: DeckDef = DECK): Scene
   const toolCarrier = new THREE.Group(); // holds the tool at the flange's fk pose until tool0 exists
   toolCarrier.add(toolGroup);
   deckGroup.add(toolCarrier);
+  // how far each jaw stands off the gripper's axis: closed on what it holds (a vial between the
+  // fingertips, the dosing head between the pads), opening only a little further, never flat out
+  let lastOpen = 1;
+  let heldRadius = () => deck.vial.radius;
   const setFingers = (open: number) => {
-    const [tx, ty, tz] = deck.tcp.xyz;
-    const half = deck.vial.radius + 0.002 + open * 0.03;
-    fingerL.position.set(tx, ty + half, tz - 0.002);
-    fingerR.position.set(tx, ty - half, tz - 0.002);
+    lastOpen = open;
+    const half = heldRadius() + 0.0015 + open * 0.012;
+    jawL.position.x = half;
+    jawR.position.x = -half;
   };
   setFingers(1);
 
@@ -747,6 +845,7 @@ export function createScene(container: HTMLElement, deck: DeckDef = DECK): Scene
 
   // ── state ───────────────────────────────────────────────────────────────────────────────────
   let held: { what: Held; obj: THREE.Object3D; vial?: Vial } | null = null;
+  heldRadius = () => (held?.what === 'head' ? 0.015 : held?.what === 'tlh' || held?.what === 'cap' ? 0.016 : deck.vial.radius);
   let dockedHead: THREE.Object3D | null = null; // the gun hanging on the Quantos hook
   const vialAt: Record<string, Vial | undefined> = {};
   const flashes = new Map<THREE.Mesh, number>();
@@ -786,11 +885,28 @@ export function createScene(container: HTMLElement, deck: DeckDef = DECK): Scene
     obj.rotation.set(tiltX, 0, deg(p.rz));
   }
 
-  function holdObject(obj: THREE.Object3D, dz: number) {
+  // the head's pose, by its collar (the clip point); it only ever rides up and down
+  function poseHead(collar: Vec3) {
+    const rig = dosingRig;
+    if (!rig) return;
+    rig.carrier.position.set(collar[0], collar[1], collar[2]);
+    if (dockedHead) {
+      dockedHead.position.set(collar[0], collar[1], collar[2] + HEAD_COLLAR);
+      dockedHead.rotation.set(0, 0, rig.rz);
+    }
+  }
+
+  const lerp3 = (a: Vec3, b: Vec3, t: number): Vec3 => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+  const smooth = (t: number) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
+  const phase = (p: number, a: number, b: number) => Math.min(1, Math.max(0, (p - a) / (b - a)));
+
+  function holdObject(obj: THREE.Object3D, dz: number, atPads = false) {
     obj.removeFromParent();
-    obj.position.set(0, 0, dz);
+    // the pads are GRIPPER_PADS.back behind the fingertips (the TCP's -y) and GRIPPER_PADS.up above them
+    obj.position.set(0, atPads ? -GRIPPER_PADS.back : 0, dz + (atPads ? GRIPPER_PADS.up : 0));
     obj.rotation.set(0, 0, 0);
     tcp.add(obj);
+    setFingers(lastOpen);
   }
 
   function holdVial(v: Vial) {
@@ -882,7 +998,7 @@ export function createScene(container: HTMLElement, deck: DeckDef = DECK): Scene
         const h = nearestTo(heads, 0.06);
         if (!h) return;
         if (h === dockedHead) dockedHead = null;
-        holdObject(h, 0);
+        holdObject(h, 0, true); // the head is taken between the pads, not the fingertips
         held = { what, obj: h };
       } else {
         const v = nearestTo(Object.values(vials).map((x) => x.group), 0.07);
@@ -908,10 +1024,11 @@ export function createScene(container: HTMLElement, deck: DeckDef = DECK): Scene
         park(tlh, deck.tlh.base.grab);
       } else if (what === 'head') {
         const m = at.match(/^head_rack_(\d+)$/);
-        if (m && deck.dosingHeads) park(held.obj, deck.dosingHeads.rack[Number(m[1]) - 1].grab);
+        if (m && deck.dosingHeads) park(held.obj, heldAtPads(deck.dosingHeads.rack[Number(m[1]) - 1].grab));
         else if (deck.dosingHeads) {
-          park(held.obj, deck.dosingHeads.quantos.grab); // hangs upright on the hook
+          park(held.obj, heldAtPads(deck.dosingHeads.quantos.grab)); // the holder clips its collar where the pads let go of it
           dockedHead = held.obj;
+          if (dosingRig) poseHead(dosingRig.collar);
         }
       } else if (held.vial) {
         if (deck.stations[at]?.virtual) {
@@ -932,30 +1049,30 @@ export function createScene(container: HTMLElement, deck: DeckDef = DECK): Scene
       }
       if (st.body) flashes.set(st.body, 1);
       if (station === 'capping_station') {
-        // the jaws close on the vial and spin it (the arm holds the cap still), then let go
-        const grip = done ? 0 : Math.min(1, progress * 4);
-        const seat = vialSeat(st.def.location.grab, deck.vial);
+        // the two blocks close on the vial, then turn with it, spinning the vial under the cap the arm
+        // holds still; at the end they stop and let go
+        const grip = done ? 0 : Math.min(1, progress * 5);
         const gap = 0.035 - grip * (0.035 - deck.vial.radius - 0.011);
-        st.extras.jawL.position.x = seat[0] - gap;
-        st.extras.jawR.position.x = seat[0] + gap;
-        if (v) v.group.rotation.z = done ? 0 : (action === 'uncap_vial' ? 1 : -1) * progress * 6 * Math.PI;
+        st.extras.jawL.position.x = -gap;
+        st.extras.jawR.position.x = gap;
+        const turns = done ? 0 : (action === 'uncap_vial' ? 1 : -1) * 6 * Math.PI * phase(progress, 0.2, 0.9);
+        st.extras.jaws.rotation.z = turns;
+        if (v) v.group.rotation.z = turns;
       } else if (station === 'analysis_station') {
         if (cameraLens) {
           const m = cameraLens.material as THREE.MeshStandardMaterial;
           m.emissiveIntensity = done ? 0.2 : 0.2 + 2.5 * Math.max(0, 1 - Math.abs(progress - 0.5) * 6);
         }
       } else if (station === 'solid_addition_station') {
-        // the carrier lowers the gun onto the vial, powder flows, the carrier lifts it back
-        const q = stations.weigh_balance;
-        const hookZ = deck.dosingHeads?.quantos.grab.z ?? 0;
-        const seat = vialSeat(st.def.location.grab, deck.vial);
-        const lowered = Math.max(0, hookZ - (seat[2] + deck.vial.height + 0.07));
-        const phase = done ? 0 : progress < 0.3 ? progress / 0.3 : progress > 0.7 ? (1 - progress) / 0.3 : 1;
-        if (q?.extras.carrier) q.extras.carrier.position.z = hookZ + 0.02 - lowered * phase;
-        if (dockedHead) dockedHead.position.z = hookZ - lowered * phase;
-        if (q?.extras.stream) {
-          q.extras.stream.visible = !done && progress > 0.3 && progress < 0.7;
-          q.extras.stream.position.z = seat[2] + deck.vial.height;
+        // the carriage rides the head straight down until its tip is at the vial mouth, the powder
+        // flows, and it rides back up to where the arm left it
+        const rig = dosingRig;
+        if (rig) {
+          const p = done ? 1 : progress;
+          // ride the head (and the top glass) down, dose, ride it back up
+          const travel = done ? 0 : p < 0.5 ? smooth(phase(p, 0, 0.38)) : 1 - smooth(phase(p, 0.62, 1));
+          poseHead(lerp3(rig.collar, rig.doseCollar, travel));
+          rig.stream.visible = !done && p > 0.4 && p < 0.6;
         }
         if (done && v) v.setContents(v.solidMg + Number(args[0] ?? 0), v.liquidMl);
       } else if (station === 'liquid_addition_station') {
@@ -1045,8 +1162,12 @@ export function createScene(container: HTMLElement, deck: DeckDef = DECK): Scene
       }
       if (held?.what !== 'tlh') park(tlh, deck.tlh.base.grab);
       if (held?.what !== 'head' && deck.dosingHeads) {
-        heads.forEach((h, i) => park(h, deck.dosingHeads!.rack[i].grab));
+        heads.forEach((h, i) => park(h, heldAtPads(deck.dosingHeads!.rack[i].grab)));
         dockedHead = null;
+      }
+      if (dosingRig) {
+        dosingRig.stream.visible = false;
+        poseHead(dosingRig.collar);
       }
     },
     tick(dt) {
@@ -1099,6 +1220,9 @@ export function createScene(container: HTMLElement, deck: DeckDef = DECK): Scene
       renderer.setSize(w, h);
       labelRenderer.setSize(w, h);
     },
+    look(target, from) {
+      lookAt(target, from);
+    },
     view(preset) {
       const cap = vialSeat(deck.stations.capping_station.location.grab, deck.vial);
       const bal = vialSeat(deck.stations.weigh_balance.location.grab, deck.vial);
@@ -1108,8 +1232,9 @@ export function createScene(container: HTMLElement, deck: DeckDef = DECK): Scene
           lookAt([0.1, 0, 0.25], [0.9, 0.7, 0.75]);
           return;
         case 'balance':
-          // from the robot's side of the Quantos (its door) and a little toward its front (the chamber)
-          lookAt([bal[0], bal[1], bal[2] + 0.1], [bal[0] - 0.45, bal[1] + 0.32, bal[2] + 0.38]);
+          // from the far side of the table, high enough to clear the dosing-head rack: the head on its rail
+          // above the chamber, the vial holder inside, the side door toward the robot beyond
+          lookAt([bal[0], bal[1], bal[2] + 0.1], [bal[0] + 0.42, bal[1] + 0.2, bal[2] + 0.6]);
           return;
         case 'capping':
           // from beyond the table's far corner, so nothing stands between the camera and the capper
@@ -1124,6 +1249,7 @@ export function createScene(container: HTMLElement, deck: DeckDef = DECK): Scene
     },
   };
 
+  if (dosingRig) poseHead(dosingRig.collar);
   api.setSafePoints(false);
   api.setTrail(false);
   api.resize();

@@ -208,7 +208,7 @@ export class Ui {
     const ml = number(liquid, 'volume', 'volume_ml', 10, 0.5, 0);
     button(liquid, 'add_liquid(volume_ml)', () => this.h.onCall('liquid_addition_station', 'add_liquid', [Number(ml.value)]));
 
-    const stir = group('stir_plate', 'No stir plate on this deck: start_stirring makes the arm invert the vial it holds.');
+    const stir = group('stir_plate', 'No stir plate on this deck: start_stirring makes the arm rock the vial it holds.');
     button(stir, 'start_stirring()', () => this.h.onCall('stir_plate', 'start_stirring', []));
     button(stir, 'stop_stirring()', () => this.h.onCall('stir_plate', 'stop_stirring', []));
 
