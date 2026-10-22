@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" width="800" height="800">
+<title>Beaver's Bench tail-as-deck mark</title>
+<rect id="background" x="0" y="0" width="800" height="800" fill="#F6EFE3"/>
+
+<defs>
+<pattern id="deckgrid" width="75" height="70" patternUnits="userSpaceOnUse" x="297" y="420">
+<path d="M 0 0 L 75 0 M 0 0 L 0 70" fill="none" stroke="#7A5230" stroke-width="3"></path>
+</pattern>
+<clipPath id="tailclip">
+<path d="M 340 300 C 250 380 220 480 220 560 C 220 680 300 745 400 745 C 500 745 580 680 580 560 C 580 480 550 380 460 300 Z"></path>
+</clipPath>
+</defs>
+
+<circle cx="400" cy="420" r="340" fill="#EBDFC9"></circle>
+
+<ellipse cx="400" cy="325" rx="150" ry="90" fill="#8B5A2B" stroke="#6B4423" stroke-width="4"></ellipse>
+
+<circle cx="310" cy="98" r="28" fill="#8B5A2B" stroke="#6B4423" stroke-width="4"></circle>
+<circle cx="310" cy="98" r="14" fill="#C4895A"></circle>
+<circle cx="490" cy="98" r="28" fill="#8B5A2B" stroke="#6B4423" stroke-width="4"></circle>
+<circle cx="490" cy="98" r="14" fill="#C4895A"></circle>
+<circle cx="400" cy="190" r="110" fill="#8B5A2B" stroke="#6B4423" stroke-width="4"></circle>
+<path d="M 338 118 Q 358 106 378 118" fill="none" stroke="#5A3A1E" stroke-width="7" stroke-linecap="round"></path>
+<path d="M 422 118 Q 442 106 462 118" fill="none" stroke="#5A3A1E" stroke-width="7" stroke-linecap="round"></path>
+<path d="M 294 172 L 322 168 M 478 168 L 506 172" fill="none" stroke="#1F4A60" stroke-width="10" stroke-linecap="round"></path>
+<circle cx="358" cy="170" r="38" fill="#D8EEF7" stroke="#2F6F8F" stroke-width="8"></circle>
+<circle cx="442" cy="170" r="38" fill="#D8EEF7" stroke="#2F6F8F" stroke-width="8"></circle>
+<rect x="393" y="165" width="14" height="10" rx="3" fill="#2F6F8F"></rect>
+<circle cx="360" cy="174" r="12" fill="#2B1D14"></circle>
+<circle cx="365" cy="169" r="4" fill="#FFFFFF"></circle>
+<circle cx="444" cy="174" r="12" fill="#2B1D14"></circle>
+<circle cx="449" cy="169" r="4" fill="#FFFFFF"></circle>
+<ellipse cx="342" cy="154" rx="13" ry="6" fill="#FFFFFF" opacity="0.6" transform="rotate(-30 342 154)"></ellipse>
+<ellipse cx="426" cy="154" rx="13" ry="6" fill="#FFFFFF" opacity="0.6" transform="rotate(-30 426 154)"></ellipse>
+<circle cx="332" cy="228" r="12" fill="#E07C5A" opacity="0.35"></circle>
+<circle cx="468" cy="228" r="12" fill="#E07C5A" opacity="0.35"></circle>
+<ellipse cx="400" cy="246" rx="58" ry="40" fill="#C4895A"></ellipse>
+<circle cx="362" cy="240" r="3" fill="#6B4423"></circle>
+<circle cx="356" cy="252" r="3" fill="#6B4423"></circle>
+<circle cx="438" cy="240" r="3" fill="#6B4423"></circle>
+<circle cx="444" cy="252" r="3" fill="#6B4423"></circle>
+<ellipse cx="400" cy="222" rx="22" ry="15" fill="#2B1D14"></ellipse>
+<ellipse cx="392" cy="216" rx="6" ry="4" fill="#FFFFFF" opacity="0.4"></ellipse>
+<path d="M 400 237 L 400 250 M 374 250 Q 400 270 426 250" fill="none" stroke="#2B1D14" stroke-width="4" stroke-linecap="round"></path>
+<rect x="386" y="250" width="13" height="24" rx="3" fill="#FFF4D6" stroke="#D9C39A" stroke-width="2"></rect>
+<rect x="401" y="250" width="13" height="24" rx="3" fill="#FFF4D6" stroke="#D9C39A" stroke-width="2"></rect>
+
+<path d="M 340 300 C 250 380 220 480 220 560 C 220 680 300 745 400 745 C 500 745 580 680 580 560 C 580 480 550 380 460 300 Z" fill="#4A3222" stroke="#2B1D14" stroke-width="5" stroke-linejoin="round"></path>
+<g clip-path="url(#tailclip)">
+<rect x="200" y="290" width="400" height="470" fill="url(#deckgrid)"></rect>
+</g>
+<path d="M 340 300 C 250 380 220 480 220 560 C 220 680 300 745 400 745 C 500 745 580 680 580 560 C 580 480 550 380 460 300 Z" fill="none" stroke="#2B1D14" stroke-width="5" stroke-linejoin="round"></path>
+
+<circle cx="330" cy="312" r="24" fill="#8B5A2B" stroke="#6B4423" stroke-width="4"></circle>
+<path d="M 318 300 Q 310 312 318 324 M 332 296 Q 324 310 332 324" fill="none" stroke="#6B4423" stroke-width="3" stroke-linecap="round" opacity="0.6"></path>
+<circle cx="470" cy="312" r="24" fill="#8B5A2B" stroke="#6B4423" stroke-width="4"></circle>
+<path d="M 468 296 Q 476 310 468 324 M 482 300 Q 490 312 482 324" fill="none" stroke="#6B4423" stroke-width="3" stroke-linecap="round" opacity="0.6"></path>
+
+<text font-family="'Baloo 2', 'Nunito', 'Arial Rounded MT Bold', system-ui, sans-serif" x="335" y="416" text-anchor="middle" font-size="20" font-weight="800" fill="#F6EFE3">1</text>
+<text font-family="'Baloo 2', 'Nunito', 'Arial Rounded MT Bold', system-ui, sans-serif" x="410" y="416" text-anchor="middle" font-size="20" font-weight="800" fill="#F6EFE3">2</text>
+<text font-family="'Baloo 2', 'Nunito', 'Arial Rounded MT Bold', system-ui, sans-serif" x="485" y="416" text-anchor="middle" font-size="20" font-weight="800" fill="#F6EFE3">3</text>
+<text font-family="'Baloo 2', 'Nunito', 'Arial Rounded MT Bold', system-ui, sans-serif" x="282" y="462" text-anchor="middle" font-size="20" font-weight="800" fill="#F6EFE3">A</text>
+<text font-family="'Baloo 2', 'Nunito', 'Arial Rounded MT Bold', system-ui, sans-serif" x="272" y="532" text-anchor="middle" font-size="20" font-weight="800" fill="#F6EFE3">B</text>
+<text font-family="'Baloo 2', 'Nunito', 'Arial Rounded MT Bold', system-ui, sans-serif" x="272" y="602" text-anchor="middle" font-size="20" font-weight="800" fill="#F6EFE3">C</text>
+<text font-family="'Baloo 2', 'Nunito', 'Arial Rounded MT Bold', system-ui, sans-serif" x="282" y="672" text-anchor="middle" font-size="20" font-weight="800" fill="#F6EFE3">D</text>
+
+<circle cx="335" cy="455" r="22" fill="#33241A" stroke="#2B1D14" stroke-width="3"></circle>
+<circle cx="410" cy="455" r="22" fill="#33241A" stroke="#2B1D14" stroke-width="3"></circle>
+<circle cx="485" cy="455" r="22" fill="#33241A" stroke="#2B1D14" stroke-width="3"></circle>
+<circle cx="335" cy="525" r="22" fill="#33241A" stroke="#2B1D14" stroke-width="3"></circle>
+<circle cx="410" cy="525" r="22" fill="#33241A" stroke="#2B1D14" stroke-width="3"></circle>
+<circle cx="485" cy="525" r="22" fill="#33241A" stroke="#2B1D14" stroke-width="3"></circle>
+<circle cx="335" cy="595" r="22" fill="#33241A" stroke="#2B1D14" stroke-width="3"></circle>
+<circle cx="410" cy="595" r="22" fill="#33241A" stroke="#2B1D14" stroke-width="3"></circle>
+<circle cx="485" cy="595" r="22" fill="#33241A" stroke="#2B1D14" stroke-width="3"></circle>
+<circle cx="335" cy="665" r="22" fill="#33241A" stroke="#2B1D14" stroke-width="3"></circle>
+<circle cx="410" cy="665" r="22" fill="#33241A" stroke="#2B1D14" stroke-width="3"></circle>
+<circle cx="485" cy="665" r="22" fill="#33241A" stroke="#2B1D14" stroke-width="3"></circle>
+
+<circle cx="335" cy="455" r="17" fill="#E0533D"></circle>
+<circle cx="329" cy="449" r="5" fill="#FFFFFF" opacity="0.5"></circle>
+<circle cx="485" cy="455" r="17" fill="#3A7CA5"></circle>
+<circle cx="479" cy="449" r="5" fill="#FFFFFF" opacity="0.5"></circle>
+<circle cx="410" cy="525" r="17" fill="#E8B33A"></circle>
+<circle cx="404" cy="519" r="5" fill="#FFFFFF" opacity="0.5"></circle>
+<circle cx="335" cy="595" r="17" fill="#4F9C6B"></circle>
+<circle cx="329" cy="589" r="5" fill="#FFFFFF" opacity="0.5"></circle>
+<circle cx="410" cy="665" r="17" fill="#3A7CA5"></circle>
+<circle cx="404" cy="659" r="5" fill="#FFFFFF" opacity="0.5"></circle>
+
+<circle cx="485" cy="595" r="17" fill="#E0533D"></circle>
+<circle cx="479" cy="589" r="5" fill="#FFFFFF" opacity="0.5"></circle>
+<circle cx="485" cy="595" r="26" fill="none" stroke="#2F6F8F" stroke-width="4" stroke-dasharray="6 6"></circle>
+
+<text font-family="'Baloo 2', 'Nunito', 'Arial Rounded MT Bold', system-ui, sans-serif" x="400" y="788" text-anchor="middle" font-size="34" font-weight="800" fill="#4A3222">Beaver's Bench</text>
+</svg>

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" width="1200" height="400">
+<title>Beaver's Bench wordmark lockup</title>
+<rect id="background" x="0" y="0" width="1200" height="400" fill="#F6EFE3"/>
+<g id="head">
+<svg x="72" y="50" width="300" height="300" viewBox="255 185 290 290">
+
+<circle cx="296" cy="228" r="32" fill="#8B5A2B" stroke="#6B4423" stroke-width="4"></circle>
+<circle cx="296" cy="228" r="17" fill="#C4895A"></circle>
+<circle cx="504" cy="228" r="32" fill="#8B5A2B" stroke="#6B4423" stroke-width="4"></circle>
+<circle cx="504" cy="228" r="17" fill="#C4895A"></circle>
+<circle cx="400" cy="330" r="132" fill="#8B5A2B" stroke="#6B4423" stroke-width="4"></circle>
+<path d="M 325 242 Q 350 226 375 240" fill="none" stroke="#5A3A1E" stroke-width="8" stroke-linecap="round"></path>
+<path d="M 425 240 Q 450 226 475 242" fill="none" stroke="#5A3A1E" stroke-width="8" stroke-linecap="round"></path>
+<path d="M 270 306 L 304 300 M 496 300 L 530 306" fill="none" stroke="#1F4A60" stroke-width="12" stroke-linecap="round"></path>
+<circle cx="350" cy="302" r="48" fill="#D8EEF7" stroke="#2F6F8F" stroke-width="10"></circle>
+<circle cx="450" cy="302" r="48" fill="#D8EEF7" stroke="#2F6F8F" stroke-width="10"></circle>
+<rect x="392" y="296" width="16" height="12" rx="3" fill="#2F6F8F"></rect>
+<circle cx="352" cy="306" r="15" fill="#2B1D14"></circle>
+<circle cx="358" cy="300" r="5" fill="#FFFFFF"></circle>
+<circle cx="452" cy="306" r="15" fill="#2B1D14"></circle>
+<circle cx="458" cy="300" r="5" fill="#FFFFFF"></circle>
+<ellipse cx="330" cy="282" rx="16" ry="8" fill="#FFFFFF" opacity="0.6" transform="rotate(-30 330 282)"></ellipse>
+<ellipse cx="430" cy="282" rx="16" ry="8" fill="#FFFFFF" opacity="0.6" transform="rotate(-30 430 282)"></ellipse>
+<circle cx="318" cy="372" r="15" fill="#E07C5A" opacity="0.35"></circle>
+<circle cx="482" cy="372" r="15" fill="#E07C5A" opacity="0.35"></circle>
+<ellipse cx="400" cy="392" rx="72" ry="50" fill="#C4895A"></ellipse>
+<circle cx="352" cy="386" r="3.5" fill="#6B4423"></circle>
+<circle cx="344" cy="400" r="3.5" fill="#6B4423"></circle>
+<circle cx="448" cy="386" r="3.5" fill="#6B4423"></circle>
+<circle cx="456" cy="400" r="3.5" fill="#6B4423"></circle>
+<ellipse cx="400" cy="360" rx="28" ry="19" fill="#2B1D14"></ellipse>
+<ellipse cx="390" cy="353" rx="8" ry="5" fill="#FFFFFF" opacity="0.4"></ellipse>
+<path d="M 400 379 L 400 396 M 368 396 Q 400 420 432 396" fill="none" stroke="#2B1D14" stroke-width="5" stroke-linecap="round"></path>
+<rect x="383" y="396" width="16" height="28" rx="4" fill="#FFF4D6" stroke="#D9C39A" stroke-width="2.5"></rect>
+<rect x="401" y="396" width="16" height="28" rx="4" fill="#FFF4D6" stroke="#D9C39A" stroke-width="2.5"></rect>
+</svg>
+</g>
+<g id="wordmark" font-family="'Baloo 2', 'Nunito', 'Arial Rounded MT Bold', system-ui, sans-serif" fill="#4A3222">
+<text x="412" y="180" font-size="104" font-weight="800" letter-spacing="-2">Beaver's Bench</text>
+<text x="412" y="232" font-size="30" font-weight="700" fill="#7A5230">Learn to build a self-driving lab, one deck at a time.</text>
+<rect x="412" y="262" width="214" height="40" rx="20" fill="#2F6F8F"/>
+<text x="519" y="289" font-size="18" font-weight="700" fill="#FFFFFF" text-anchor="middle">3D deck simulation</text>
+<rect x="638" y="262" width="150" height="40" rx="20" fill="#E0D3BC"/>
+<text x="713" y="289" font-size="18" font-weight="700" fill="#4A3222" text-anchor="middle">Open science</text>
+</g>
+</svg>

@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/brand/beavers-bench-lockup.svg" alt="Beaver's Bench: learn to build a self-driving lab, one deck at a time" width="720">
+</p>
+
 # Beaver's Bench
 
 A 3D simulation of the Hein lab's UR3e colour-match deck, for training. It takes the instrument calls
@@ -20,6 +24,12 @@ python examples/edge_app.py           # IVORYOS_PORT picks the port (default 808
 ```
 
 Or add the plugin to any deck that uses the simulator: `plugins=[beavers_bench.next_plugin.plugin]`.
+
+**From the IvoryOS desktop app**: in the launcher, add a profile of the kind *Python script*, choose
+`examples/edge_app.py`, and set its Python to an environment where the two `pip install` lines
+above have run (this repository's `.venv`, for example). Start it, open it, and Beaver's Bench is
+in the sidebar as a panel. Use it instead of the colour-match *SDL Simulation* panel, not beside
+it: both listen to the same simulator, and only the one that starts last receives its events.
 
 **Standalone (sandbox)**: open the built page from any static file server and the simulator runs in
 the page, with a button per instrument method and the stock-solution demo. No Python needed, so it
