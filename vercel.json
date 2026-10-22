@@ -1,13 +1,18 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
-  "installCommand": "npm ci --prefix frontend",
-  "buildCommand": "npm run build --prefix frontend",
+  "installCommand": "cd frontend && npm ci",
+  "buildCommand": "cd frontend && npm run build",
   "outputDirectory": "beavers_bench/static",
   "headers": [
     {
       "source": "/assets/(.*)",
-      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
     }
   ]
 }
