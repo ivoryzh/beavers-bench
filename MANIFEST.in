@@ -1,0 +1,2 @@
+include README.md
+recursive-include beavers_bench/static *.html *.urdf *.js *.css

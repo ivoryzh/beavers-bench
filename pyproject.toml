@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "beavers-bench"
+version = "0.1.0"
+description = "Beaver's Bench: a 3D simulation of the UR3e colour-match deck, driven by the colour-match SDL simulator, for training."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    # the simulated instruments and the plugin bridge the page is driven by
+    "colour-match-sdl @ git+https://gitlab.com/heingroup/colour-match-sdl.git",
+]
+
+[project.optional-dependencies]
+# running the page inside ivoryos-next (the edge server is installed from its own repository)
+test = ["pytest", "httpx"]
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["beavers_bench"]
+
+[tool.setuptools.package-data]
+# the built page only; the Vite source in frontend/ is not shipped
+beavers_bench = [
+    "static/*.html",
+    "static/*.urdf",
+    "static/assets/*",
+]

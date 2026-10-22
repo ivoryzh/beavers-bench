@@ -1,0 +1,341 @@
+# KPMBA education deck
+
+deck_mounting:
+  deck_mounting: 'deck'
+
+gripper_positions:
+  closed: 0.0
+  open: 110.0
+  open_vial_tray_16_ml: 22
+  open_dosing_head: 24
+  open_quantos_vial: 40
+  open_capping_station: 60
+  open_cap_holder: 60
+  open_tlh: 60
+
+arm_home:
+  positive_x: {'x': 353.3, 'y': 78.9, 'z': 367.2, 'rx': 0, 'ry': 0, 'rz': -90}
+  joints_positive_x: [155.04861363122606, -125.53948598140956, 81.39442541540217, -45.9412295629915, -89.67652155766287, 334.86147145692405]
+  negative_x: { }
+  joints_negative_x: [ ]
+  positive_y: {'x': -50.9, 'y': 358.4, 'z': 367.0, 'rx': 0, 'ry': 0, 'rz': 0}
+  joints_positive_y: [245.0, -125.54044220789336, 81.3932779436216, -45.938927789241205, -89.67474570847867, 334.8616627022208]
+  negative_y: {'x': 47.5, 'y': -358.9, 'z': 367.1, 'rx': 0, 'ry': 0, 'rz': 180}
+  joints_negative_y: [60.00051393383986, -125.54044220789336, 81.3932779436216, -45.938927789241205, -89.67474570847867, 334.8616627022208]
+  velocity: 500
+  joints_velocity: 100
+
+vial_at_vial_tray:
+  tray_1:
+    deck_position: 'positive_x'
+    grab: {'x': 501.6, 'y': 190.0, 'z': 93, 'rx': 0, 'ry': 0, 'rz': -90}
+    bottom_left: {'x': 401.1, 'y': 189.5, 'z': 93, 'rx': 0, 'ry': 0, 'rz': -90}
+    bottom_right: {'x': 400.5, 'y': 129.6, 'z': 93, 'rx': 0, 'ry': 0, 'rz': -90}
+    approach: {'z': 90}
+    safe: { 'y': -100, 'z': 50}
+    gripper_open: 'open_vial_tray_7_ml'
+    rows: 6
+    columns: 4
+    pick_grab_force: 5
+    place_grab_force: 5
+    grip_with_arm_compliant: true
+    pick_sanity_check_before_motion: 'arm_close_gripper'
+    pick_sanity_check_after_grip: 'arm_open_gripper_around_vial'
+    pick_sanity_check_after_motion: 'was_pick_up_successful'
+    place_sanity_check_before_releasing_grip: 'is_arm_at_grab_location_after_force_move_and_move_up'
+
+  tray_2:
+    deck_position: 'positive_x'
+    grab: {'x': 547.2, 'y': 71.9, 'z': 91.5, 'rx': 0, 'ry': 0, 'rz': -90}
+    bottom_left: {'x': 446.5, 'y': 71.37, 'z': 91.5, 'rx': 0, 'ry': 0, 'rz': -90}
+    bottom_right: {'x': 447.4, 'y': 22.94, 'z': 91.5, 'rx': 0, 'ry': 0, 'rz': -90}
+    approach: {'z': 90}
+    safe: { 'y': -100, 'z': 50 }
+    gripper_open: 'open_vial_tray_16_ml'
+    rows: 5
+    columns: 3
+    pick_grab_force: 5
+    place_grab_force: 5
+    grip_with_arm_compliant: true
+    pick_sanity_check_before_motion: 'arm_close_gripper'
+    pick_sanity_check_after_grip: 'arm_open_gripper_around_vial'
+    pick_sanity_check_after_motion: 'was_pick_up_successful'
+    place_sanity_check_before_releasing_grip: 'is_arm_at_grab_location_after_force_move_and_move_up'
+
+  tray_3:
+    deck_position: 'positive_x'
+    grab: {'x': 546.4, 'y': -41.26, 'z': 91.5, 'rx': 0, 'ry': 0, 'rz': -90}
+    bottom_left: {'x': 446.6, 'y': -42.02, 'z': 91.5, 'rx': 0, 'ry': 0, 'rz': -90.0}
+    bottom_right: {'x': 447.1, 'y': -91.85, 'z': 91.5, 'rx': 0, 'ry': 0, 'rz': -90.00}
+    approach: {'z': 90}
+    safe: { 'y': -100, 'z': 50 }
+    gripper_open: 'open_vial_tray_16_ml'
+    rows: 5
+    columns: 3
+    pick_grab_force: 5
+    place_grab_force: 5
+    grip_with_arm_compliant: true
+    pick_sanity_check_before_motion: 'arm_close_gripper'
+    pick_sanity_check_after_grip: 'arm_open_gripper_around_vial'
+    pick_sanity_check_after_motion: 'was_pick_up_successful'
+    place_sanity_check_before_releasing_grip: 'is_arm_at_grab_location_after_force_move_and_move_up'
+
+  tray_4:
+    deck_position: 'positive_x'
+    grab: {'x': 545.4, 'y': -144.4, 'z': 97.3, 'rx': 0, 'ry': 0, 'rz': -90}
+    bottom_left: {'x': 451.0, 'y': -144.7, 'z': 96.8, 'rx': 0, 'ry': 0, 'rz': -90}
+    bottom_right: {'x': 451.3, 'y': -212.9, 'z': 96.8, 'rx': 0, 'ry': 0, 'rz': -90}
+    approach: { 'z': 50 }
+    safe: { 'y': -100, 'z': 50 }
+    gripper_open: 'open_vial_tray_2_ml'
+    pick_grab_force: 5
+    place_grab_force: 5
+    grip_with_arm_compliant: true
+    blend_radius: 0.5
+    rows: 8
+    columns: 6
+    pick_sanity_check_after_motion: 'was_pick_up_successful'
+    place_sanity_check_before_releasing_grip: 'is_arm_at_grab_location_after_force_move_and_move_up'
+
+  tray_5:
+    deck_position: 'positive_y'
+    grab: { 'x': -5.0, 'y': 593.8, 'z': 129.0, 'rx': 0, 'ry': 0, 'rz': 0 }
+    bottom_left: { 'x': -5.5, 'y': 692.7, 'z': 129.0, 'rx': 0, 'ry': 0, 'rz': 0 }
+    bottom_right: { 'x': -54.1, 'y': 693.0, 'z': 129.0, 'rx': 0, 'ry': 0, 'rz': 0 }
+    approach: { 'z': 90 }
+    safe: { 'y': -180, 'z': 100 }
+    gripper_open: 'open_vial_tray_16_ml'
+    rows: 5
+    columns: 3
+    invert_row_direction: true
+    invert_column_direction: true
+    pick_grab_force: 5
+    place_grab_force: 5
+    grip_with_arm_compliant: true
+    pick_sanity_check_before_motion: 'arm_close_gripper'
+    pick_sanity_check_after_grip: 'arm_open_gripper_around_vial'
+    pick_sanity_check_after_motion: 'was_pick_up_successful'
+    place_sanity_check_before_releasing_grip: 'is_arm_at_grab_location_after_force_move_and_move_up'
+
+vial_at_capping_station:
+  vial_16_ml:
+    deck_position: 'negative_y'
+    grab: {'x': 157.0, 'y': -514.0, 'z': 205.9, 'rx': 0, 'ry': 0, 'rz': 180}
+    approach: { 'z': 50.0 }
+    safe: { 'y': -150 }
+    gripper_open: 'open_capping_station'
+    capping_z_offset: 25
+    uncapping_z_offset: 15
+    place_grab_force: 5
+    post_safe_velocity: 500
+    pick_sanity_check_after_grip: 'capping_station_open_gripper'
+    pick_sanity_check_after_motion: 'was_pick_up_successful'
+    place_sanity_check_before_motion: 'capping_station_open_gripper'
+    place_sanity_check_before_releasing_grip: 'is_object_in_capping_station'
+
+vial_at_quantos:
+  vial_16_ml:
+    deck_position: 'positive_x'
+    grab: {'x': 502.1, 'y': -169.0, 'z': 191.0, 'rx': 0, 'ry': 0, 'rz': -90}
+    approach: {'z': 40}
+    safe: { y: -100 }
+    gripper_open: 'open_quantos_vial'
+    place_grab_force: 3
+    pick_pre_approach_force_duration: 30
+    pre_approach_velocity: 50
+    grab_velocity: 50
+    post_approach_velocity: 500
+    blend_radius: 1
+    pick_sanity_check_before_motion: [ ]
+    pick_sanity_check_after_motion: [ 'was_pick_up_successful', 'quantos_re_enable_default_locations' ]
+    place_sanity_check_before_motion: [ ]
+    place_sanity_check_after_motion: [ 'quantos_re_enable_default_locations' ]
+
+vial_cap_at_cap_holder:
+  deck_position: 'negative_y'
+  grab: {'x': 23.8, 'y': -498.0, 'z': 152.2, 'rx': 0, 'ry': 0, 'rz': 180}
+  approach: {'z': 30}
+  safe: {'y': -100}
+  gripper_closed: 'closed_2_ml'
+  gripper_open: 'open_cap_holder'
+  place_grab_force: 3
+#  gripper_force: 30
+  blend_radius: 0.5
+
+dosing_head_at_rack:
+  dosing_head_1:
+    deck_position: 'positive_x'
+    grab: {'x': 585.4, 'y': 118.2, 'z': 353.5, 'rx': 0, 'ry': 0, 'rz': -90}
+    approach: { 'z': 2.5 }
+    safe: { 'y': -100 }
+    gripper_open: 'open_dosing_head'
+    pick_pre_approach_force: 5
+    pick_grab_force: 5
+    pick_post_approach_force: 15
+    pick_pre_approach_force_duration: 10
+    place_pre_approach_force: 15
+    place_grab_force: 15
+    place_pre_approach_force_duration: 10
+    grip_with_arm_compliant: true
+    blend_radius: 0.5
+    pick_sanity_check_after_motion: 'was_pick_up_successful'
+
+  dosing_head_2:
+    deck_position: 'positive_x'
+    grab: {'x': 586.6, 'y': 46.4, 'z': 353.5, 'rx': 0, 'ry': 0, 'rz': -90}
+    approach: { 'z': 2.5 }
+    safe: { 'y': -100 }
+    gripper_open: 'open_dosing_head'
+    pick_pre_approach_force: 5
+    pick_grab_force: 5
+    pick_post_approach_force: 15
+    pick_pre_approach_force_duration: 10
+    place_pre_approach_force: 15
+    place_grab_force: 15
+    place_pre_approach_force_duration: 10
+    grip_with_arm_compliant: true
+    blend_radius: 0.5
+    pick_sanity_check_after_motion: 'was_pick_up_successful'
+
+  dosing_head_3:
+    deck_position: 'positive_x'
+    grab: {'x': 586.0, 'y': 117.3, 'z': 190.2, 'rx': 0, 'ry': 0, 'rz': -90}
+    approach: { 'z': 2.5 }
+    safe: { 'y': -100 }
+    gripper_open: 'open_dosing_head'
+    pick_pre_approach_force: 5
+    pick_grab_force: 5
+    pick_post_approach_force: 15
+    pick_pre_approach_force_duration: 10
+    place_pre_approach_force: 15
+    place_grab_force: 15
+    place_pre_approach_force_duration: 10
+    grip_with_arm_compliant: true
+    blend_radius: 0.5
+    pick_sanity_check_after_motion: 'was_pick_up_successful'
+
+  dosing_head_4:
+    deck_position: 'positive_x'
+    grab: {'x': 586.3, 'y': 45.9, 'z': 190.2, 'rx': 0, 'ry': 0, 'rz': -90}
+    approach: { 'z': 2.5 }
+    safe: { 'y': -100 }
+    gripper_open: 'open_dosing_head'
+    pick_pre_approach_force: 5
+    pick_grab_force: 5
+    pick_post_approach_force: 15
+    pick_pre_approach_force_duration: 10
+    place_pre_approach_force: 15
+    place_grab_force: 15
+    place_pre_approach_force_duration: 10
+    grip_with_arm_compliant: true
+    blend_radius: 0.5
+    pick_sanity_check_after_motion: 'was_pick_up_successful'
+
+  dosing_head_5:
+    deck_position: 'positive_x'
+    grab: {'x': 586.2, 'y': -64.7, 'z': 338.5, 'rx': 0, 'ry': 0, 'rz': -90}
+    approach: { 'z': 2.5 }
+    safe: { 'y': -100 }
+    gripper_open: 'open_dosing_head'
+    pick_pre_approach_force: 5
+    pick_grab_force: 5
+    pick_post_approach_force: 15
+    pick_pre_approach_force_duration: 10
+    place_pre_approach_force: 15
+    place_grab_force: 15
+    place_pre_approach_force_duration: 10
+    grip_with_arm_compliant: true
+    blend_radius: 0.5
+    pick_sanity_check_after_motion: 'was_pick_up_successful'
+
+  dosing_head_6:
+    deck_position: 'positive_x'
+    grab: {'x': 586.1, 'y': -134.6, 'z': 337.3, 'rx': 0, 'ry': 0, 'rz': -90}
+    approach: { 'z': 2.5 }
+    safe: { 'y': -100 }
+    gripper_open: 'open_dosing_head'
+    pick_pre_approach_force: 5
+    pick_grab_force: 5
+    pick_post_approach_force: 15
+    pick_pre_approach_force_duration: 10
+    place_pre_approach_force: 15
+    place_grab_force: 15
+    place_pre_approach_force_duration: 10
+    grip_with_arm_compliant: true
+    blend_radius: 0.5
+    pick_sanity_check_after_motion: 'was_pick_up_successful'
+
+  dosing_head_7:
+    deck_position: 'positive_x'
+    grab: {'x': 585.2, 'y': -62.8, 'z': 228.8, 'rx': 0, 'ry': 0, 'rz': -90}
+    approach: { 'z': 2.5 }
+    safe: { 'y': -100 }
+    gripper_open: 'open_dosing_head'
+    pick_pre_approach_force: 5
+    pick_grab_force: 5
+    pick_post_approach_force: 15
+    pick_pre_approach_force_duration: 10
+    place_pre_approach_force: 15
+    place_grab_force: 15
+    place_pre_approach_force_duration: 10
+    grip_with_arm_compliant: true
+    blend_radius: 0.5
+    pick_sanity_check_after_motion: 'was_pick_up_successful'
+
+  dosing_head_8:
+    deck_position: 'positive_x'
+    grab: {'x': 586.7, 'y': -134.6, 'z': 230.1, 'rx': 0, 'ry': 0, 'rz': -90}
+    approach: { 'z': 2.5 }
+    safe: { 'y': -100 }
+    gripper_open: 'open_dosing_head'
+    pick_pre_approach_force: 5
+    pick_grab_force: 5
+    pick_post_approach_force: 15
+    pick_pre_approach_force_duration: 10
+    place_pre_approach_force: 15
+    place_grab_force: 15
+    place_pre_approach_force_duration: 10
+    grip_with_arm_compliant: true
+    blend_radius: 0.5
+    pick_sanity_check_after_motion: 'was_pick_up_successful'
+
+dosing_head_at_quantos:
+  deck_position: 'positive_x'
+  grab: {'x': 393.6, 'y': -355.8, 'z': 294.5, 'rx': 0, 'ry': 0, 'rz': 180}
+  approach: { 'z': 2 }
+  safe: { 'y': -15 }
+  buffer_safe: { 'y': -70 , 'z': 50 }
+  gripper_open: 'open_dosing_head'
+  pre_safe_joints_enabled: false
+  pre_safe_enabled: true
+  post_safe_enabled: true
+  post_safe_joints_enabled: false
+  place_pre_approach_force: 5
+  place_grab_force: 5
+  blend_radius: 0.5
+  pick_sanity_check_after_motion: 'was_pick_up_successful'
+
+grippers:
+  universal_gripper:
+    tcp: [ 0.0, -0.2, 0.052, -3.1416, 0.0, 0.0 ]
+    mass: 1.0
+    cog: [ 0.0, 0.0, 0.01]
+
+tlh_at_base_station:
+  deck_position: 'negative_y'
+  grab:  {'x': -43.9, 'y': -577.8, 'z': 212.2, 'rx': 0, 'ry': 0, 'rz': -180}
+  approach: { 'z': 85 }
+  safe: { 'y': -150 }
+  grip_open: 'open_tlh'
+  grab_velocity: 50
+
+tlh_at_capping_station:
+  vial_16_ml:
+    deck_position: 'negative_y'
+    relative_to_location: ['vial_at_capping_station', 'vial_16_ml']
+    grab: {'x': 0, 'y': 4.6, 'z': 50, 'rx': 0, 'ry': 0, 'rz': 0}  # TODO
+    approach: { 'z': 40 }
+    safe: {  }
+    grip_open: 'open_tlh'
+    pre_safe_joints_enabled: false
+    post_safe_enabled: false

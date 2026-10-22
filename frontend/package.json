@@ -1,0 +1,26 @@
+{
+  "name": "beavers-bench",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Beaver's Bench: a 3D UR3 deck simulator for the colour-match SDL, built into ../static",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit -p tsconfig.json && vite build",
+    "preview": "vite preview",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "three": "^0.185.1",
+    "urdf-loader": "^0.13.1"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^26.6.5",
+    "@types/three": "^0.185.4",
+    "js-yaml": "^5.5.0",
+    "typescript": "~6.0.2",
+    "vite": "^8.2.0",
+    "vitest": "latest"
+  }
+}

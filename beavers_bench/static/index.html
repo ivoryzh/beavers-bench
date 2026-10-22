@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Beaver's Bench</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <script type="module" crossorigin src="./assets/index-B1RulMdy.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-rXAA4s-R.css">
+</head>
+<body>
+  <div class="app">
+    <div id="viewport" class="viewport"></div>
+
+    <aside class="panel">
+      <header class="panel-head">
+        <div>
+          <div class="title">Beaver's Bench</div>
+          <div class="subtitle" id="deck-name"></div>
+        </div>
+        <div class="chips">
+          <div id="mode-chip" class="chip">···</div>
+          <div id="connection-status" class="chip status">···</div>
+        </div>
+      </header>
+
+      <section class="block">
+        <div class="block-head">
+          <span class="block-title">Deck</span>
+          <span class="muted" id="queued"></span>
+        </div>
+        <div id="deck-state" class="deck-state">—</div>
+      </section>
+
+      <section class="block ladder-block">
+        <div class="block-head">
+          <span class="block-title">What the arm does</span>
+          <span class="muted">operation → ArmManager → UR3</span>
+        </div>
+        <div id="ladder-call" class="ladder-call">Waiting for a call…</div>
+        <ol id="ladder" class="ladder"></ol>
+      </section>
+
+      <section class="block view-block">
+        <div class="block-head"><span class="block-title">View</span></div>
+        <div class="view-row">
+          <label class="chk"><input type="checkbox" id="chk-safe" /> Safe-height points</label>
+          <label class="chk"><input type="checkbox" id="chk-trail" /> Tool path</label>
+          <label class="chk"><input type="checkbox" id="chk-labels" checked /> Labels</label>
+          <label class="chk"><input type="checkbox" id="chk-locations" /> Locations only</label>
+        </div>
+        <div class="view-row">
+          <span class="muted">Look at</span>
+          <button class="small" data-view="overview">Overview</button>
+          <button class="small" data-view="arm">Arm</button>
+          <button class="small" data-view="balance">Balance</button>
+          <button class="small" data-view="capping">Capping</button>
+          <button class="small" data-view="tray">Tray</button>
+        </div>
+        <div class="view-row">
+          <label class="slider">Speed <input type="range" id="speed" min="0.5" max="4" step="0.1" value="1.5" /> <span id="speed-val">1.5×</span></label>
+          <button id="btn-reset" class="small danger">Reset state</button>
+        </div>
+        <div class="muted">Drag to orbit, wheel to zoom, right-drag to pan.</div>
+      </section>
+
+      <section class="block">
+        <div class="block-head"><span class="block-title">Bench</span><span class="muted">two benches share the arm</span></div>
+        <div class="view-row">
+          <label class="chk"><input type="radio" name="module" value="quantos" /> Quantos (balance + powder dosing)</label>
+          <label class="chk"><input type="radio" name="module" value="balance" /> Weigh balance only</label>
+        </div>
+      </section>
+
+      <div id="controls" class="controls" hidden></div>
+
+      <section class="block log-block">
+        <div class="block-head"><span class="block-title">Activity log</span></div>
+        <ul id="log-list" class="log-list"></ul>
+      </section>
+    </aside>
+  </div>
+</body>
+</html>

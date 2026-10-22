@@ -1,0 +1,13 @@
+.idea/
+.vscode/
+.DS_Store
+__pycache__/
+*.pyc
+.venv/
+build/
+dist/
+*.egg-info/
+ivoryos_data/
+examples/ivoryos_edge.db*
+examples/ivoryos_schema.json
+frontend/node_modules/
